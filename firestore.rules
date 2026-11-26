@@ -1,0 +1,132 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global default-deny safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidVideoProject(data) {
+      return data.ownerId is string && data.ownerId.size() >= 1 && data.ownerId.size() <= 128 &&
+             data.ownerName is string && data.ownerName.size() >= 1 && data.ownerName.size() <= 80 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             data.description is string && data.description.size() <= 400 &&
+             data.aspectRatio in ['16:9', '9:16', '1:1'] &&
+             data.templateKey is string && data.templateKey.size() <= 40 &&
+             data.shareVisibility in ['private', 'link_anyone'] &&
+             data.shareCode is string && data.shareCode.size() <= 16 &&
+             (data.shareVisibility == 'private' || data.shareCode.size() >= 4) &&
+             data.totalDurationMs is int && data.totalDurationMs >= 0 && data.totalDurationMs <= 3600000 &&
+             data.clips is list && data.clips.size() <= 40 &&
+             (data.clips.size() == 0 || data.clips[0] is map) &&
+             data.overlays is list && data.overlays.size() <= 30 &&
+             (data.overlays.size() == 0 || data.overlays[0] is map) &&
+             data.audioTracks is list && data.audioTracks.size() <= 10 &&
+             (data.audioTracks.size() == 0 || data.audioTracks[0] is map) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidSavedShare(data) {
+      return data.projectId is string && data.projectId.size() >= 1 && data.projectId.size() <= 128 &&
+             data.shareCode is string && data.shareCode.size() >= 4 && data.shareCode.size() <= 16 &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 100 &&
+             data.ownerName is string && data.ownerName.size() >= 1 && data.ownerName.size() <= 80 &&
+             data.aspectRatio in ['16:9', '9:16', '1:1'] &&
+             data.totalDurationMs is int && data.totalDurationMs >= 0 && data.totalDurationMs <= 3600000 &&
+             data.savedAt is timestamp && data.savedAt <= request.time;
+    }
+
+    match /projects/{projectId} {
+      allow get: if isSignedIn() &&
+                    isValidId(projectId) &&
+                    (existing().ownerId == request.auth.uid || existing().shareVisibility == 'link_anyone');
+
+      allow list: if isSignedIn() &&
+                     (existing().ownerId == request.auth.uid || existing().shareVisibility == 'link_anyone');
+
+      allow create: if isSignedIn() &&
+                       isValidId(projectId) &&
+                       incoming().ownerId == request.auth.uid &&
+                       incoming().keys().hasAll([
+                         'ownerId', 'ownerName', 'title', 'description', 'aspectRatio',
+                         'templateKey', 'shareVisibility', 'shareCode', 'totalDurationMs',
+                         'clips', 'overlays', 'audioTracks', 'createdAt', 'updatedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'ownerId', 'ownerName', 'title', 'description', 'aspectRatio',
+                         'templateKey', 'shareVisibility', 'shareCode', 'totalDurationMs',
+                         'clips', 'overlays', 'audioTracks', 'createdAt', 'updatedAt'
+                       ]) &&
+                       isValidVideoProject(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(projectId) &&
+                       isValidVideoProject(incoming()) &&
+                       existing().ownerId == request.auth.uid &&
+                       incoming().ownerId == existing().ownerId &&
+                       incoming().createdAt == existing().createdAt &&
+                       (
+                         // Action: Timeline & Metadata Edit
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'ownerName', 'title', 'description', 'aspectRatio', 'templateKey',
+                           'totalDurationMs', 'clips', 'overlays', 'audioTracks', 'updatedAt'
+                         ]) ||
+                         // Action: Sharing Settings Update
+                         incoming().diff(existing()).affectedKeys().hasOnly([
+                           'shareVisibility', 'shareCode', 'updatedAt'
+                         ])
+                       );
+
+      allow delete: if isSignedIn() &&
+                       isValidId(projectId) &&
+                       existing().ownerId == request.auth.uid;
+    }
+
+    match /users/{userId}/saved_shares/{shareId} {
+      allow get: if isSignedIn() && request.auth.uid == userId && isValidId(shareId);
+      allow list: if isSignedIn() && request.auth.uid == userId;
+
+      allow create: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(shareId) &&
+                       incoming().keys().hasAll([
+                         'projectId', 'shareCode', 'title', 'ownerName',
+                         'aspectRatio', 'totalDurationMs', 'savedAt'
+                       ]) &&
+                       incoming().keys().hasOnly([
+                         'projectId', 'shareCode', 'title', 'ownerName',
+                         'aspectRatio', 'totalDurationMs', 'savedAt'
+                       ]) &&
+                       isValidSavedShare(incoming());
+
+      allow update: if isSignedIn() &&
+                       request.auth.uid == userId &&
+                       isValidId(shareId) &&
+                       isValidSavedShare(incoming()) &&
+                       incoming().projectId == existing().projectId &&
+                       incoming().diff(existing()).affectedKeys().hasOnly([
+                         'shareCode', 'title', 'ownerName', 'aspectRatio', 'totalDurationMs', 'savedAt'
+                       ]);
+
+      allow delete: if isSignedIn() && request.auth.uid == userId && isValidId(shareId);
+    }
+  }
+}

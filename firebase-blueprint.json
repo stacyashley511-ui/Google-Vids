@@ -1,0 +1,147 @@
+{
+  "entities": {
+    "VideoProject": {
+      "title": "VideoProject",
+      "description": "Cloud-synchronized video editing project with multi-track timeline clips, text overlays, and audio tracks.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the project creator."
+        },
+        "ownerName": {
+          "type": "string",
+          "description": "Display name of the project creator."
+        },
+        "title": {
+          "type": "string",
+          "description": "Project title."
+        },
+        "description": {
+          "type": "string",
+          "description": "Short summary or notes for the video project."
+        },
+        "aspectRatio": {
+          "type": "string",
+          "enum": ["16:9", "9:16", "1:1"],
+          "description": "Canvas aspect ratio preset."
+        },
+        "templateKey": {
+          "type": "string",
+          "description": "Starter template key or 'blank'."
+        },
+        "shareVisibility": {
+          "type": "string",
+          "enum": ["private", "link_anyone"],
+          "description": "Sharing mode for the video project."
+        },
+        "shareCode": {
+          "type": "string",
+          "description": "Share code used to open shared videos when shareVisibility is link_anyone."
+        },
+        "totalDurationMs": {
+          "type": "integer",
+          "description": "Total timeline duration in milliseconds."
+        },
+        "clips": {
+          "type": "array",
+          "description": "Ordered list of visual timeline clip objects (up to 40)."
+        },
+        "overlays": {
+          "type": "array",
+          "description": "List of timed text overlay objects (up to 30)."
+        },
+        "audioTracks": {
+          "type": "array",
+          "description": "List of timed audio/voiceover track objects (up to 10)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the project was created (FieldValue.serverTimestamp())."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the project was last updated (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "ownerId",
+        "ownerName",
+        "title",
+        "description",
+        "aspectRatio",
+        "templateKey",
+        "shareVisibility",
+        "shareCode",
+        "totalDurationMs",
+        "clips",
+        "overlays",
+        "audioTracks",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SavedShare": {
+      "title": "SavedShare",
+      "description": "Bookmark reference to a shared video project opened by the user.",
+      "type": "object",
+      "properties": {
+        "projectId": {
+          "type": "string",
+          "description": "Referenced VideoProject document ID."
+        },
+        "shareCode": {
+          "type": "string",
+          "description": "Share code used to open the project."
+        },
+        "title": {
+          "type": "string",
+          "description": "Cached project title."
+        },
+        "ownerName": {
+          "type": "string",
+          "description": "Creator display name."
+        },
+        "aspectRatio": {
+          "type": "string",
+          "enum": ["16:9", "9:16", "1:1"],
+          "description": "Aspect ratio preset."
+        },
+        "totalDurationMs": {
+          "type": "integer",
+          "description": "Duration in milliseconds."
+        },
+        "savedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the shared video was saved (FieldValue.serverTimestamp())."
+        }
+      },
+      "required": [
+        "projectId",
+        "shareCode",
+        "title",
+        "ownerName",
+        "aspectRatio",
+        "totalDurationMs",
+        "savedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "schema": {
+        "$ref": "#/entities/VideoProject"
+      },
+      "description": "User-owned and link-shared video editing projects."
+    },
+    "/users/{userId}/saved_shares/{shareId}": {
+      "schema": {
+        "$ref": "#/entities/SavedShare"
+      },
+      "description": "Per-user bookmarks of shared video projects."
+    }
+  }
+}

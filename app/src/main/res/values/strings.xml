@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Vids Studio</string>
+    <string name="studio_tagline">Timeline-based video creation &amp; cloud sync</string>
+    <string name="sign_in_google">Sign in with Google</string>
+    <string name="sign_out">Sign out</string>
+    <string name="tab_my_videos">My Videos</string>
+    <string name="tab_shared">Shared</string>
+    <string name="tab_templates">Templates</string>
+    <string name="tab_permissions">Permissions</string>
+    <string name="new_video">New Video</string>
+    <string name="open_share_code">Open Share Code</string>
+    <string name="share_video">Share</string>
+    <string name="cloud_synced">Cloud Synced</string>
+    <string name="phone_access_blocked">Phone &amp; Call Access Disabled by Policy</string>
+</resources>
